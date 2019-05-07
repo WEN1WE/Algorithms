@@ -2,7 +2,7 @@ import edu.princeton.cs.algs4.StdRandom;
 import edu.princeton.cs.algs4.StdStats;
 
 public class PercolationStats {
-    private static final double PARAMETER = 1.95;
+    private static final double PARAMETER = 1.96;
     private final int trials;
     private final double mean;
     private final double s;
