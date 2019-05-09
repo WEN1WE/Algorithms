@@ -1,3 +1,6 @@
+// Selection sort is not stable
+// Long-distance exchange might move an item past some equal item.
+
 public class Selection {
     public static void sort(Comparable[] a) {
         int N = a.length;

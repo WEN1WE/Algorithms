@@ -1,3 +1,6 @@
+// Shellsort is not stable
+// Long-distance exchanges.
+
 public class Shell {
     public static void sort(Comparable[] a) {
         int N = a.length;
