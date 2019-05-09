@@ -1,3 +1,6 @@
+// Mergesort is stable
+// Suffices to verify that merge operation is stable
+
 import edu.princeton.cs.algs4.Insertion;
 
 public class Merge {
