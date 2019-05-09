@@ -10,12 +10,14 @@ public class FastCollinearPoints {
         }
 
         int N = points.length;
-        int countVisited = 0;
 
         Point[] tPoints = new Point[N];
         System.arraycopy(points, 0, tPoints, 0, N);
         count = 0;
         lineSegments = new LineSegment[N];
+        Point[] start = new Point[N];
+        Point[] end = new Point[N];
+        int sign = 0;
 
         for (Point point : points) {
 
@@ -34,9 +36,24 @@ public class FastCollinearPoints {
                             Point[] collinear = new Point[j + 1];
                             collinear[0] = tPoints[0];
                             System.arraycopy(tPoints, i, collinear, 1, j);
-                            countVisited += j;
                             Arrays.sort(collinear);
-                            lineSegments[count++] = new LineSegment(collinear[0], collinear[j]);
+
+                            for (int k = 0; k < count; k++) {
+                                if (start[k] == collinear[0] && end[k] == collinear[j]) {
+                                    sign = 1;
+                                    break;
+                                }
+                            }
+
+                            if (sign == 0) {
+                                start[count] = collinear[0];
+                                end[count] = collinear[j];
+                                lineSegments[count++] = new LineSegment(collinear[0], collinear[j]);
+                            } else {
+                                sign = 0;
+                            }
+
+
                         }
                         i += j;
                         break;
