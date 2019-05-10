@@ -1,75 +1,87 @@
+import java.util.ArrayList;
 import java.util.Arrays;
 
 public class FastCollinearPoints {
-    private int count = 0;
-    private LineSegment[] lineSegments;
+    private final ArrayList<LineSegment> lineSegments = new ArrayList<>();
+    private final int n;
 
     public FastCollinearPoints(Point[] points) {
-        if (points == null) {
+        if (points == null || hasNull(points)) {
             throw new java.lang.IllegalArgumentException();
         }
 
-        int N = points.length;
+        n = points.length;
+        Point[] sortedPoints = points.clone();
 
-        Point[] tPoints = new Point[N];
-        System.arraycopy(points, 0, tPoints, 0, N);
-        count = 0;
-        lineSegments = new LineSegment[N];
-        Point[] start = new Point[N];
-        Point[] end = new Point[N];
-        int sign = 0;
+        // time : nlogn
+        Arrays.sort(sortedPoints);
+        if (hasDuplicate(sortedPoints)) {
+            throw new java.lang.IllegalArgumentException();
+        }
 
         for (Point point : points) {
 
-            Arrays.sort(tPoints, point.slopeOrder());
+            Arrays.sort(sortedPoints);
+            Arrays.sort(sortedPoints, point.slopeOrder());
 
-            for (int i = 1; i < N - 2;) {
-                double firstSlope = tPoints[0].slopeTo(tPoints[i]);
-                for (int j = 1; i + j < N; j++) {
-                    double nextSlope = tPoints[0].slopeTo(tPoints[i + j]);
-                    if (nextSlope != firstSlope || i + j == N - 1) {
-                        if (i + j == N - 1 && nextSlope == firstSlope) {
-                            j += 1;
-                        }
+            int start = 1;
+            int end = 2;
+            double startSlope;
+            double endSlope;
 
-                        if (j > 2) {
-                            Point[] collinear = new Point[j + 1];
-                            collinear[0] = tPoints[0];
-                            System.arraycopy(tPoints, i, collinear, 1, j);
-                            Arrays.sort(collinear);
+            while (end < n) {
+                startSlope = point.slopeTo(sortedPoints[start]);
+                endSlope = point.slopeTo(sortedPoints[end]);
 
-                            for (int k = 0; k < count; k++) {
-                                if (start[k] == collinear[0] && end[k] == collinear[j]) {
-                                    sign = 1;
-                                    break;
-                                }
-                            }
+                if (Double.compare(startSlope, endSlope) == 0) {
+                    end += 1;
 
-                            if (sign == 0) {
-                                start[count] = collinear[0];
-                                end[count] = collinear[j];
-                                lineSegments[count++] = new LineSegment(collinear[0], collinear[j]);
-                            } else {
-                                sign = 0;
-                            }
-
-
-                        }
-                        i += j;
-                        break;
+                    // if last points are Collinear, can't contain them;
+                    if (end != n) {
+                        continue;
                     }
                 }
+
+                // the origin point must be the start of the line.
+                if (end - start > 2  && sortedPoints[0].compareTo(sortedPoints[start]) < 0) {
+                    lineSegments.add(new LineSegment(point, sortedPoints[end - 1]));
+                }
+
+                start = end;
+                end += 1;
+
             }
         }
     }
 
     public int numberOfSegments() {
-        return count;
+        return lineSegments.size();
     }
 
     public LineSegment[] segments() {
-        LineSegment[] t = new LineSegment[count];
-        System.arraycopy(lineSegments, 0, t, 0, count);
-        return t;
+        return lineSegments.toArray(new LineSegment[0]);
     }
+
+    private boolean hasNull(Point[] points) {
+        for (Point p : points) {
+            if (p == null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean hasDuplicate(Point[] points) {
+        for (int i = 0; i < n - 1; i++) {
+            if (points[i].compareTo(points[i + 1]) == 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 }
+
+
+
+
