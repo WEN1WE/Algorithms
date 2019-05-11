@@ -1,3 +1,5 @@
+// in-place sorting algorithm with NlogN worst-case
+
 public class MaxPQ<Key extends Comparable<Key>> {
     private Key[] pq;
     private int N;
