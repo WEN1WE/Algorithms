@@ -3,18 +3,19 @@ import edu.princeton.cs.algs4.RectHV;
 import edu.princeton.cs.algs4.StdDraw;
 import edu.princeton.cs.algs4.Queue;
 
-
 public class KdTree {
     private static final boolean RED = true;
+    private static final double MINSCARE = -0.5;
+    private static final double MAXSCARE = 1.5;
 
-    private Node root;
+    private Node sentinel;
     private int size;
 
     /**
      * construct an empty set of points
      */
     public KdTree() {
-        root = null;
+        sentinel = new Node(new Point2D(1, 1), !RED, null);
         size = 0;
     }
 
@@ -30,13 +31,33 @@ public class KdTree {
             this.color = color;
             this.predecessor = predecessor;
         }
+
+        private double getX() {
+            return point.x();
+        }
+
+        private double getY() {
+            return point.y();
+        }
+
+        private double compareX(Point2D p) {
+            return p.x() - point.x();
+        }
+
+        private double compareY(Point2D p) {
+            return p.y() - point.y();
+        }
+
+        private boolean isRed() {
+            return color == RED;
+        }
     }
 
     /**
      * is the set empty?
      */
     public boolean isEmpty() {
-        return root == null;
+        return size == 0;
     }
 
     /**
@@ -51,68 +72,52 @@ public class KdTree {
      */
     public void insert(Point2D p) {
         isLegal(p);
-        if (root == null) {
-            root = new Node(p, RED, new Node(new Point2D(1, 1), !RED, null));
-            size += 1;
-            return;
-        }
-
-        boolean color = RED;
-        Node current = root;
-        double diff;
-
-        while (true) {
-            diff = (color == RED) ? (p.x() - current.point.x()) : (p.y() - current.point.y());
-
-            if (diff < 0) {
-                if (current.left == null) {
-                    current.left = new Node(p, !color, current);
-                    size += 1;
-                    break;
-                }
-                current = current.left;
-            } else {
-                // don't insert the equal point.
-                if (current.point.equals(p)) {
-                    return;
-                }
-
-                if (current.right == null) {
-                    current.right = new Node(p, !color, current);
-                    size += 1;
-                    break;
-                }
-                current = current.right;
-            }
-            color = !color;
-        }
+        size += 1;
+        sentinel.left = insert(sentinel.left, p, sentinel);
     }
 
+    private Node insert(Node node, Point2D p, Node predecessor) {
+        if (node == null) {
+            return new Node(p, !predecessor.color, predecessor);
+        }
+        if (node.point.equals(p)) {
+            return node;
+        }
+
+        double cmp = node.isRed() ? node.compareX(p) : node.compareY(p);
+        if (cmp < 0) {
+            node.left = insert(node.left, p, node);
+        } else {
+            node.right = insert(node.right, p, node);
+        }
+        return node;
+    }
     /**
      * does the set contain point p?
      */
+
     public boolean contains(Point2D p) {
         isLegal(p);
-        return contains(root, p);
+        return contains(sentinel, p);
     }
 
-    private boolean contains(Node x, Point2D p) {
-        if (x == null) {
+    private boolean contains(Node node, Point2D p) {
+        if (node == null) {
             return false;
         }
-
-        if (x.point.equals(p)) {
+        if (node.point.equals(p)) {
             return true;
         }
 
-        double diff = (x.color == RED) ? (p.x() - x.point.x()) : (p.y() - x.point.y());
+        double cmp = node.isRed() ? node.compareX(p) : node.compareY(p);
 
-        if (diff < 0) {
-            return contains(x.left, p);
+        if (cmp < 0) {
+            return contains(node.left, p);
         } else {
-            return contains(x.right, p);
+            return contains(node.right, p);
         }
     }
+
 
     /**
      * draw all points to standard draw
@@ -120,21 +125,18 @@ public class KdTree {
     public void draw() {
         StdDraw.clear();
         StdDraw.setPenColor(StdDraw.BLACK);
-        StdDraw.setXscale(-0.5, 1.5);
-        StdDraw.setYscale(-0.5, 1.5);
-        StdDraw.line(0, 0, 0, 1);
-        StdDraw.line(0, 0, 1, 0);
-        StdDraw.line(0, 1, 1, 1);
-        StdDraw.line(1, 0, 1, 1);
+        StdDraw.setXscale(MINSCARE, MAXSCARE);
+        StdDraw.setYscale(MINSCARE, MAXSCARE);
+        StdDraw.rectangle(0.5, 0.5, 0.5, 0.5);
 
         Queue<Node> q = new Queue<>();
-        inorder(root, q);
+        inorder(sentinel.left, q);
 
         for (Node node : q) {
-            double x = node.point.x();
-            double y = node.point.y();
-            double xP = node.predecessor.point.x();
-            double yP = node.predecessor.point.y();
+            double x = node.getX();
+            double y = node.getY();
+            double xP = node.predecessor.getX();
+            double yP = node.predecessor.getY();
 
             StdDraw.setPenRadius(0.001);
 
@@ -152,62 +154,60 @@ public class KdTree {
             StdDraw.setPenRadius(0.01);
             StdDraw.point(x, y);
         }
-
         StdDraw.show();
     }
 
-    private void inorder(Node x, Queue<Node> q) {
-        if (x == null) {
+    private void inorder(Node node, Queue<Node> q) {
+        if (node == null) {
             return;
         }
-        inorder(x.left, q);
-        q.enqueue(x);
-        inorder(x.right, q);
+        inorder(node.left, q);
+        q.enqueue(node);
+        inorder(node.right, q);
     }
 
     /**
      * all points that are inside the rectangle (or on the boundary)
      */
+
     public Iterable<Point2D> range(RectHV rect) {
         isLegal(rect);
         Queue<Point2D> q = new Queue<>();
-        range(root, rect, q);
+        RectHV maxRect = new RectHV(0, 0, 1,1);
+        range(sentinel, rect, q, maxRect);
         return q;
     }
 
-    private void range(Node node, RectHV rect, Queue<Point2D> q) {
+    private void range(Node node, RectHV rect, Queue<Point2D> q, RectHV maxRect) {
         if (node == null) {
             return;
         }
-
+        if (!rect.intersects(maxRect)) {
+            return;
+        }
         if (rect.contains(node.point)) {
             q.enqueue(node.point);
         }
 
+        double xmin = rect.xmin();
+        double xmax = rect.xmax();
+        double ymin = rect.ymin();
+        double ymax = rect.ymax();
+
         if (node.color == RED) {
-            if (rect.xmax() < node.point.x()) {
-                range(node.left, rect, q);
-            } else if (rect.xmin() >= node.point.x()){
-                range(node.right, rect, q);
-            } else {
-                range(node.left, rect, q);
-                range(node.right, rect, q);
-            }
+            range(node.left, rect, q, new RectHV(xmin, ymin, node.getX(), ymax));
+            range(node.right, rect, q, new RectHV(node.getX(), ymin, xmax, ymax));
         } else {
-            if (rect.ymax() < node.point.y()) {
-                range(node.left, rect, q);
-            } else if (rect.xmin() >= node.point.y()) {
-                range(node.right, rect, q);
-            } else {
-                range(node.left, rect, q);
-                range(node.right, rect, q);
-            }
+            range(node.left, rect, q, new RectHV(xmin, ymin, xmax, node.getY()));
+            range(node.right, rect, q, new RectHV(xmin, node.getY(), xmax, ymax));
         }
     }
 
     /**
      * a nearest neighbor in the set to point p; null if the set is empty
      */
+
+    /*
     public Point2D nearest(Point2D p) {
         isLegal(p);
         return nearest(root, p, root.point, 0);
@@ -219,8 +219,8 @@ public class KdTree {
             return null;
         }
 
-        double minDist = p.distanceTo(minPoint);
-        if (p.distanceTo(node.point) < minDist) {
+        double minDist = p.distanceSquaredTo(minPoint);
+        if (p.distanceSquaredTo(node.point) < minDist) {
             minPoint = node.point;
         }
 
@@ -235,14 +235,20 @@ public class KdTree {
                     minPoint = temp;
                 }
 
-                nearest(node.right, p, minPoint, Math.abs(p.x() - node.point.x()));
+                Point2D temp2 = nearest(node.right, p, minPoint, Math.abs(p.x() - node.point.x()));
+                if (temp2 != null && p.distanceSquaredTo(minPoint) > p.distanceSquaredTo(temp2)) {
+                    minPoint = temp2;
+                }
             } else {
                 Point2D temp = nearest(node.right, p, minPoint, 0);
                 if (temp != null) {
                     minPoint = temp;
                 }
 
-                nearest(node.left, p, minPoint, Math.abs(node.point.x() - p.x()));
+                Point2D temp2 = nearest(node.left, p, minPoint, Math.abs(node.point.x() - p.x()));
+                if (temp2 != null && p.distanceSquaredTo(minPoint) > p.distanceSquaredTo(temp2)) {
+                    minPoint = temp2;
+                }
             }
         } else {
             if (p.y() < node.point.y()) {
@@ -251,26 +257,33 @@ public class KdTree {
                     minPoint = temp;
                 }
 
-                nearest(node.right, p, minPoint, Math.abs(p.x() - node.point.x()));
+                Point2D temp2 = nearest(node.right, p, minPoint, Math.abs(p.x() - node.point.x()));
+                if (temp2 != null && p.distanceSquaredTo(minPoint) > p.distanceSquaredTo(temp2)) {
+                    minPoint = temp2;
+                }
+
             } else {
                 Point2D temp = nearest(node.right, p, minPoint, 0);
                 if (temp != null) {
                     minPoint = temp;
                 }
 
-                nearest(node.left, p, minPoint, Math.abs(node.point.x() - p.x()));
+                Point2D temp2 = nearest(node.left, p, minPoint, Math.abs(node.point.x() - p.x()));
+                if (temp2 != null && p.distanceSquaredTo(minPoint) > p.distanceSquaredTo(temp2)) {
+                    minPoint = temp2;
+                }
             }
         }
 
         return minPoint;
     }
+    */
 
     private void isLegal(Object object) {
         if (object == null) {
             throw new java.lang.IllegalArgumentException();
         }
     }
-
 
     public static void main(String[] args) {
         Point2D a = new Point2D(0.7, 0.2);
@@ -284,20 +297,23 @@ public class KdTree {
         KdTree t = new KdTree();
         t.insert(a);
         t.insert(b);
-        //t.insert(c);
+        t.insert(c);
         t.insert(d);
-
         t.insert(e);
+        t.draw();
+        System.out.println(t.contains(f));
 
+
+
+
+        /*
         RectHV rect = new RectHV(0.5, 0.2, 0.7, 0.4);
         for (Point2D p : t.range(rect)) {
             System.out.println(p);
         }
         System.out.println(t.contains(f));
         t.draw();
-
-
-        System.out.println(t.nearest(c));
+        System.out.println(t.nearest(c)); */
     }
 
 
