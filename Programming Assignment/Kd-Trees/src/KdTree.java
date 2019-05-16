@@ -8,7 +8,7 @@ public class KdTree {
     private static final boolean HORIZONTAL = false;
     private static final boolean LEFTORBOTTOM = true;
     private static final boolean RIGHTORTOP = false;
-    public static final RectHV MAXRECT = new RectHV(0, 0, 1, 1);
+    private static final RectHV MAXRECT = new RectHV(0, 0, 1, 1);
 
     private Node root;
     private int size;
@@ -215,79 +215,58 @@ public class KdTree {
     /**
      * a nearest neighbor in the set to point p; null if the set is empty
      */
-
-
-    /*
     public Point2D nearest(Point2D p) {
         isLegal(p);
-        return nearest(root, p, root.point, 0);
+        return nearest(root, p, MAXRECT, root.point);
 
     }
 
-    private Point2D nearest(Node node, Point2D p, Point2D minPoint, double minGuess) {
+    private Point2D nearest(Node node, Point2D p, RectHV maxRect, Point2D minPoint) {
         if (node == null) {
             return null;
         }
+        double minDist;
+        double nodeDist;
+        double minLeftDist = Double.MAX_VALUE;
+        double minRightDist = Double.MAX_VALUE;
+        Point2D minLeftPoint;
+        Point2D minRightPoint;
 
-        double minDist = p.distanceSquaredTo(minPoint);
-        if (p.distanceSquaredTo(node.point) < minDist) {
+        minDist = p.distanceSquaredTo(minPoint);
+        if (minDist <= maxRect.distanceSquaredTo(p)) {
+            return minPoint;
+        }
+        nodeDist = p.distanceSquaredTo(node.point);
+        if (minDist > nodeDist) {
             minPoint = node.point;
+            minDist = nodeDist;
         }
 
-        if (minGuess >= minDist) {
-            return null;
-        }
-
-        if (node.color == RED) {
-            if (p.x() < node.point.x()) {
-                Point2D temp = nearest(node.left, p, minPoint, 0);
-                if (temp != null) {
-                    minPoint = temp;
-                }
-
-                Point2D temp2 = nearest(node.right, p, minPoint, Math.abs(p.x() - node.point.x()));
-                if (temp2 != null && p.distanceSquaredTo(minPoint) > p.distanceSquaredTo(temp2)) {
-                    minPoint = temp2;
-                }
-            } else {
-                Point2D temp = nearest(node.right, p, minPoint, 0);
-                if (temp != null) {
-                    minPoint = temp;
-                }
-
-                Point2D temp2 = nearest(node.left, p, minPoint, Math.abs(node.point.x() - p.x()));
-                if (temp2 != null && p.distanceSquaredTo(minPoint) > p.distanceSquaredTo(temp2)) {
-                    minPoint = temp2;
-                }
-            }
+        double cmp = node.compareTo(p);
+        if (cmp < 0) {
+            minLeftPoint = nearest(node.left, p, getRect(node, maxRect, LEFTORBOTTOM), minPoint);
+            minRightPoint = nearest(node.right, p, getRect(node, maxRect, RIGHTORTOP), minPoint);
         } else {
-            if (p.y() < node.point.y()) {
-                Point2D temp = nearest(node.left, p, minPoint, 0);
-                if (temp != null) {
-                    minPoint = temp;
-                }
-
-                Point2D temp2 = nearest(node.right, p, minPoint, Math.abs(p.x() - node.point.x()));
-                if (temp2 != null && p.distanceSquaredTo(minPoint) > p.distanceSquaredTo(temp2)) {
-                    minPoint = temp2;
-                }
-
-            } else {
-                Point2D temp = nearest(node.right, p, minPoint, 0);
-                if (temp != null) {
-                    minPoint = temp;
-                }
-
-                Point2D temp2 = nearest(node.left, p, minPoint, Math.abs(node.point.x() - p.x()));
-                if (temp2 != null && p.distanceSquaredTo(minPoint) > p.distanceSquaredTo(temp2)) {
-                    minPoint = temp2;
-                }
-            }
+            minRightPoint = nearest(node.right, p, getRect(node, maxRect, RIGHTORTOP), minPoint);
+            minLeftPoint = nearest(node.left, p, getRect(node, maxRect, LEFTORBOTTOM), minPoint);
         }
 
+        if (minLeftPoint != null) {
+            minLeftDist = p.distanceSquaredTo(minLeftPoint);
+        }
+        if (minRightPoint != null) {
+            minRightDist = p.distanceSquaredTo(minRightPoint);
+        }
+
+        if (minLeftDist < minDist) {
+            minPoint = minLeftPoint;
+            minDist = minLeftDist;
+        }
+        if (minRightDist < minDist) {
+            minPoint = minRightPoint;
+        }
         return minPoint;
     }
-    */
 
     private void isLegal(Object object) {
         if (object == null) {
@@ -295,6 +274,7 @@ public class KdTree {
         }
     }
 
+    /*
     public static void main(String[] args) {
         Point2D a = new Point2D(0.7, 0.2);
         Point2D b = new Point2D(0.5, 0.4);
@@ -314,20 +294,8 @@ public class KdTree {
         System.out.println(t.contains(f));
         //t.draw();
         //System.out.println(t.contains(f));
-
-
-
-
-        /*
-        RectHV rect = new RectHV(0.5, 0.2, 0.7, 0.4);
-        for (Point2D p : t.range(rect)) {
-            System.out.println(p);
-        }
-        System.out.println(t.contains(f));
-        t.draw();
-        System.out.println(t.nearest(c)); */
     }
 
-
+     */
 }
 
