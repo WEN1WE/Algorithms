@@ -73,7 +73,7 @@ public class PointSET {
     public Point2D nearest(Point2D p) {
         isLegal(p);
         Point2D nearestP = null;
-        double minDist = Double.MAX_VALUE;
+        double minDist = Double.POSITIVE_INFINITY;
         for (Point2D point : points) {
             double dist = p.distanceSquaredTo(point);
             if (Double.compare(minDist, dist) > 0) {

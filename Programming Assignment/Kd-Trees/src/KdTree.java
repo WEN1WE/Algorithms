@@ -6,8 +6,6 @@ import edu.princeton.cs.algs4.Queue;
 public class KdTree {
     private static final boolean VERTICAL = true;
     private static final boolean HORIZONTAL = false;
-    private static final boolean LEFTORBOTTOM = true;
-    private static final boolean RIGHTORTOP = false;
     private static final RectHV MAXRECT = new RectHV(0, 0, 1, 1);
 
     private Node root;
@@ -135,8 +133,8 @@ public class KdTree {
     private void draw(Node node, RectHV rect) {
         if (node != null) {
             drawLine(node, rect);
-            draw(node.left, getRect(node, rect, LEFTORBOTTOM));
-            draw(node.right, getRect(node, rect, RIGHTORTOP));
+            draw(node.left, getRect(node, rect, true));
+            draw(node.right, getRect(node, rect, false));
         }
     }
 
@@ -161,7 +159,7 @@ public class KdTree {
         StdDraw.point(node.getX(), node.getY());
     }
 
-    private static RectHV getRect(Node node, RectHV rect, Boolean position) {
+    private static RectHV getRect(Node node, RectHV rect, boolean leftOrBottom) {
         if (node == null) {
             return null;
         }
@@ -171,7 +169,7 @@ public class KdTree {
         double xmax = rect.xmax();
         double ymax = rect.ymax();
 
-        if (position == LEFTORBOTTOM) {
+        if (leftOrBottom) {
             if (node.isVertical()) {
                 xmax = node.getX();
             } else {
@@ -208,8 +206,8 @@ public class KdTree {
             q.enqueue(node.point);
         }
 
-        range(node.left, rect, q, getRect(node, maxRect, LEFTORBOTTOM));
-        range(node.right, rect, q, getRect(node, maxRect, RIGHTORTOP));
+        range(node.left, rect, q, getRect(node, maxRect, true));
+        range(node.right, rect, q, getRect(node, maxRect, false));
     }
 
     /**
@@ -217,55 +215,33 @@ public class KdTree {
      */
     public Point2D nearest(Point2D p) {
         isLegal(p);
-        return nearest(root, p, MAXRECT, root.point);
-
-    }
-
-    private Point2D nearest(Node node, Point2D p, RectHV maxRect, Point2D minPoint) {
-        if (node == null) {
+        if (root == null) {
             return null;
         }
-        double minDist;
-        double nodeDist;
-        double minLeftDist = Double.MAX_VALUE;
-        double minRightDist = Double.MAX_VALUE;
-        Point2D minLeftPoint;
-        Point2D minRightPoint;
+        return nearest(root, p, MAXRECT, root.point, p.distanceSquaredTo(root.point));
+    }
 
-        minDist = p.distanceSquaredTo(minPoint);
-        if (minDist <= maxRect.distanceSquaredTo(p)) {
-            return minPoint;
+    private Point2D nearest(Node node, Point2D p, RectHV maxRect, Point2D nearestP, double minDist) {
+        if (node == null || minDist <= maxRect.distanceSquaredTo(p)) {
+            return nearestP;
         }
-        nodeDist = p.distanceSquaredTo(node.point);
+
+        double nodeDist = p.distanceSquaredTo(node.point);
         if (minDist > nodeDist) {
-            minPoint = node.point;
+            nearestP = node.point;
             minDist = nodeDist;
         }
 
         double cmp = node.compareTo(p);
         if (cmp < 0) {
-            minLeftPoint = nearest(node.left, p, getRect(node, maxRect, LEFTORBOTTOM), minPoint);
-            minRightPoint = nearest(node.right, p, getRect(node, maxRect, RIGHTORTOP), minPoint);
+            nearestP = nearest(node.left, p, getRect(node, maxRect, true), nearestP, minDist);
+            nearestP = nearest(node.right, p, getRect(node, maxRect, false), nearestP, p.distanceSquaredTo(nearestP));
         } else {
-            minRightPoint = nearest(node.right, p, getRect(node, maxRect, RIGHTORTOP), minPoint);
-            minLeftPoint = nearest(node.left, p, getRect(node, maxRect, LEFTORBOTTOM), minPoint);
+            nearestP = nearest(node.right, p, getRect(node, maxRect, false), nearestP, minDist);
+            nearestP = nearest(node.left, p, getRect(node, maxRect, true), nearestP, p.distanceSquaredTo(nearestP));
         }
 
-        if (minLeftPoint != null) {
-            minLeftDist = p.distanceSquaredTo(minLeftPoint);
-        }
-        if (minRightPoint != null) {
-            minRightDist = p.distanceSquaredTo(minRightPoint);
-        }
-
-        if (minLeftDist < minDist) {
-            minPoint = minLeftPoint;
-            minDist = minLeftDist;
-        }
-        if (minRightDist < minDist) {
-            minPoint = minRightPoint;
-        }
-        return minPoint;
+        return nearestP;
     }
 
     private void isLegal(Object object) {
