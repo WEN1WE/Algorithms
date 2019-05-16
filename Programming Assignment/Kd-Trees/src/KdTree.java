@@ -4,18 +4,19 @@ import edu.princeton.cs.algs4.StdDraw;
 import edu.princeton.cs.algs4.Queue;
 
 public class KdTree {
-    private static final boolean RED = true;
-    private static final double MINSCARE = -0.5;
-    private static final double MAXSCARE = 1.5;
+    private static final boolean VERTICAL = true;
+    private static final boolean HORIZONTAL = false;
+    private static final boolean LEFTORBOTTOM = true;
+    private static final boolean RIGHTORTOP = false;
+    public static final RectHV MAXRECT = new RectHV(0, 0, 1, 1);
 
-    private Node sentinel;
+    private Node root;
     private int size;
 
     /**
      * construct an empty set of points
      */
     public KdTree() {
-        sentinel = new Node(new Point2D(1, 1), !RED, null);
         size = 0;
     }
 
@@ -23,13 +24,11 @@ public class KdTree {
         Point2D point;
         Node left;
         Node right;
-        boolean color;
-        Node predecessor;
+        boolean split;
 
-        private Node(Point2D point, boolean color, Node predecessor) {
+        private Node(Point2D point, boolean split) {
             this.point = point;
-            this.color = color;
-            this.predecessor = predecessor;
+            this.split = split;
         }
 
         private double getX() {
@@ -40,16 +39,21 @@ public class KdTree {
             return point.y();
         }
 
-        private double compareX(Point2D p) {
-            return p.x() - point.x();
+        private boolean isVertical() {
+            return split == VERTICAL;
         }
 
-        private double compareY(Point2D p) {
-            return p.y() - point.y();
-        }
+        private int compareTo(Point2D that) {
+            isLegal(that);
 
-        private boolean isRed() {
-            return color == RED;
+            if (that.equals(point)) {
+                return 0;
+            }
+            if (isVertical()) {
+                return Double.compare(that.x(), point.x());
+            } else  {
+                return Double.compare(that.y(), point.y());
+            }
         }
     }
 
@@ -72,33 +76,33 @@ public class KdTree {
      */
     public void insert(Point2D p) {
         isLegal(p);
-        size += 1;
-        sentinel.left = insert(sentinel.left, p, sentinel);
+        root = insert(root, p, HORIZONTAL);
     }
 
-    private Node insert(Node node, Point2D p, Node predecessor) {
+    private Node insert(Node node, Point2D p, boolean split) {
         if (node == null) {
-            return new Node(p, !predecessor.color, predecessor);
+            size += 1;
+            return new Node(p, !split);
         }
         if (node.point.equals(p)) {
             return node;
         }
 
-        double cmp = node.isRed() ? node.compareX(p) : node.compareY(p);
+        int cmp = node.compareTo(p);
         if (cmp < 0) {
-            node.left = insert(node.left, p, node);
+            node.left = insert(node.left, p, node.split);
         } else {
-            node.right = insert(node.right, p, node);
+            node.right = insert(node.right, p, node.split);
         }
         return node;
     }
+
     /**
      * does the set contain point p?
      */
-
     public boolean contains(Point2D p) {
         isLegal(p);
-        return contains(sentinel, p);
+        return contains(root, p);
     }
 
     private boolean contains(Node node, Point2D p) {
@@ -109,8 +113,7 @@ public class KdTree {
             return true;
         }
 
-        double cmp = node.isRed() ? node.compareX(p) : node.compareY(p);
-
+        double cmp = node.compareTo(p);
         if (cmp < 0) {
             return contains(node.left, p);
         } else {
@@ -118,63 +121,79 @@ public class KdTree {
         }
     }
 
-
     /**
      * draw all points to standard draw
      */
     public void draw() {
         StdDraw.clear();
+        StdDraw.setPenRadius(0.001);
         StdDraw.setPenColor(StdDraw.BLACK);
-        StdDraw.setXscale(MINSCARE, MAXSCARE);
-        StdDraw.setYscale(MINSCARE, MAXSCARE);
         StdDraw.rectangle(0.5, 0.5, 0.5, 0.5);
-
-        Queue<Node> q = new Queue<>();
-        inorder(sentinel.left, q);
-
-        for (Node node : q) {
-            double x = node.getX();
-            double y = node.getY();
-            double xP = node.predecessor.getX();
-            double yP = node.predecessor.getY();
-
-            StdDraw.setPenRadius(0.001);
-
-            if (node.color == RED) {
-                StdDraw.setPenColor(StdDraw.RED);
-                double y0 = (yP > y) ? 0 : 1;
-                StdDraw.line(x, y0, x, yP);
-            } else {
-                StdDraw.setPenColor(StdDraw.BLUE);
-                double x0 = (xP > x) ? 0 : 1;
-                StdDraw.line(x0, y, xP, y);
-            }
-
-            StdDraw.setPenColor(StdDraw.BLACK);
-            StdDraw.setPenRadius(0.01);
-            StdDraw.point(x, y);
-        }
-        StdDraw.show();
+        draw(root, MAXRECT);
     }
 
-    private void inorder(Node node, Queue<Node> q) {
-        if (node == null) {
-            return;
+    private void draw(Node node, RectHV rect) {
+        if (node != null) {
+            drawLine(node, rect);
+            draw(node.left, getRect(node, rect, LEFTORBOTTOM));
+            draw(node.right, getRect(node, rect, RIGHTORTOP));
         }
-        inorder(node.left, q);
-        q.enqueue(node);
-        inorder(node.right, q);
+    }
+
+    private static void drawLine(Node node, RectHV rect) {
+        double x0 = rect.xmin();
+        double y0 = rect.ymin();
+        double x1 = rect.xmax();
+        double y1 = rect.ymax();
+
+        StdDraw.setPenRadius(0.001);
+        if (node.isVertical()) {
+            x0 = node.getX();
+            x1 = node.getX();
+            StdDraw.setPenColor(StdDraw.RED);
+        } else {
+            y0 = node.getY();
+            y1 = node.getY();
+            StdDraw.setPenColor(StdDraw.BLUE);
+        }
+        StdDraw.line(x0, y0, x1, y1);
+        StdDraw.setPenRadius(0.01);
+        StdDraw.point(node.getX(), node.getY());
+    }
+
+    private static RectHV getRect(Node node, RectHV rect, Boolean position) {
+        if (node == null) {
+            return null;
+        }
+
+        double xmin = rect.xmin();
+        double ymin = rect.ymin();
+        double xmax = rect.xmax();
+        double ymax = rect.ymax();
+
+        if (position == LEFTORBOTTOM) {
+            if (node.isVertical()) {
+                xmax = node.getX();
+            } else {
+                ymax = node.getY();
+            }
+        } else {
+            if (node.isVertical()) {
+                xmin = node.getX();
+            } else {
+                ymin = node.getY();
+            }
+        }
+        return new RectHV(xmin, ymin, xmax, ymax);
     }
 
     /**
      * all points that are inside the rectangle (or on the boundary)
      */
-
     public Iterable<Point2D> range(RectHV rect) {
         isLegal(rect);
         Queue<Point2D> q = new Queue<>();
-        RectHV maxRect = new RectHV(0, 0, 1,1);
-        range(sentinel, rect, q, maxRect);
+        range(root, rect, q, MAXRECT);
         return q;
     }
 
@@ -189,23 +208,14 @@ public class KdTree {
             q.enqueue(node.point);
         }
 
-        double xmin = rect.xmin();
-        double xmax = rect.xmax();
-        double ymin = rect.ymin();
-        double ymax = rect.ymax();
-
-        if (node.color == RED) {
-            range(node.left, rect, q, new RectHV(xmin, ymin, node.getX(), ymax));
-            range(node.right, rect, q, new RectHV(node.getX(), ymin, xmax, ymax));
-        } else {
-            range(node.left, rect, q, new RectHV(xmin, ymin, xmax, node.getY()));
-            range(node.right, rect, q, new RectHV(xmin, node.getY(), xmax, ymax));
-        }
+        range(node.left, rect, q, getRect(node, maxRect, LEFTORBOTTOM));
+        range(node.right, rect, q, getRect(node, maxRect, RIGHTORTOP));
     }
 
     /**
      * a nearest neighbor in the set to point p; null if the set is empty
      */
+
 
     /*
     public Point2D nearest(Point2D p) {
@@ -300,8 +310,10 @@ public class KdTree {
         t.insert(c);
         t.insert(d);
         t.insert(e);
-        t.draw();
+        System.out.println(t.contains(c));
         System.out.println(t.contains(f));
+        //t.draw();
+        //System.out.println(t.contains(f));
 
 
 
