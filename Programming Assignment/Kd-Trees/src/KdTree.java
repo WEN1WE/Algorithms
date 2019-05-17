@@ -235,10 +235,12 @@ public class KdTree {
         double cmp = node.compareTo(p);
         if (cmp < 0) {
             nearestP = nearest(node.left, p, getRect(node, maxRect, true), nearestP, minDist);
-            nearestP = nearest(node.right, p, getRect(node, maxRect, false), nearestP, p.distanceSquaredTo(nearestP));
+            minDist = p.distanceSquaredTo(nearestP)
+            nearestP = nearest(node.right, p, getRect(node, maxRect, false), nearestP, minDist);
         } else {
             nearestP = nearest(node.right, p, getRect(node, maxRect, false), nearestP, minDist);
-            nearestP = nearest(node.left, p, getRect(node, maxRect, true), nearestP, p.distanceSquaredTo(nearestP));
+            minDist = p.distanceSquaredTo(nearestP)
+            nearestP = nearest(node.left, p, getRect(node, maxRect, true), nearestP, minDist);
         }
 
         return nearestP;
