@@ -133,8 +133,8 @@ public class KdTree {
     private void draw(Node node, RectHV rect) {
         if (node != null) {
             drawLine(node, rect);
-            draw(node.left, getRect(node, rect, true));
-            draw(node.right, getRect(node, rect, false));
+            draw(node.left, splitRect(node, rect, true));
+            draw(node.right, splitRect(node, rect, false));
         }
     }
 
@@ -159,15 +159,15 @@ public class KdTree {
         StdDraw.point(node.getX(), node.getY());
     }
 
-    private static RectHV getRect(Node node, RectHV rect, boolean leftOrBottom) {
+    private static RectHV splitRect(Node node, RectHV nodeRect, boolean leftOrBottom) {
         if (node == null) {
             return null;
         }
 
-        double xmin = rect.xmin();
-        double ymin = rect.ymin();
-        double xmax = rect.xmax();
-        double ymax = rect.ymax();
+        double xmin = nodeRect.xmin();
+        double ymin = nodeRect.ymin();
+        double xmax = nodeRect.xmax();
+        double ymax = nodeRect.ymax();
 
         if (leftOrBottom) {
             if (node.isVertical()) {
@@ -195,19 +195,19 @@ public class KdTree {
         return q;
     }
 
-    private void range(Node node, RectHV rect, Queue<Point2D> q, RectHV maxRect) {
+    private void range(Node node, RectHV rect, Queue<Point2D> q, RectHV nodeRect) {
         if (node == null) {
             return;
         }
-        if (!rect.intersects(maxRect)) {
+        if (!rect.intersects(nodeRect)) {
             return;
         }
         if (rect.contains(node.point)) {
             q.enqueue(node.point);
         }
 
-        range(node.left, rect, q, getRect(node, maxRect, true));
-        range(node.right, rect, q, getRect(node, maxRect, false));
+        range(node.left, rect, q, splitRect(node, nodeRect, true));
+        range(node.right, rect, q, splitRect(node, nodeRect, false));
     }
 
     /**
@@ -221,8 +221,8 @@ public class KdTree {
         return nearest(root, p, MAXRECT, root.point, p.distanceSquaredTo(root.point));
     }
 
-    private Point2D nearest(Node node, Point2D p, RectHV maxRect, Point2D nearestP, double minDist) {
-        if (node == null || minDist <= maxRect.distanceSquaredTo(p)) {
+    private Point2D nearest(Node node, Point2D p, RectHV nodeRect, Point2D nearestP, double minDist) {
+        if (node == null || minDist <= nodeRect.distanceSquaredTo(p)) {
             return nearestP;
         }
 
@@ -234,13 +234,13 @@ public class KdTree {
 
         double cmp = node.compareTo(p);
         if (cmp < 0) {
-            nearestP = nearest(node.left, p, getRect(node, maxRect, true), nearestP, minDist);
-            minDist = p.distanceSquaredTo(nearestP)
-            nearestP = nearest(node.right, p, getRect(node, maxRect, false), nearestP, minDist);
+            nearestP = nearest(node.left, p, splitRect(node, nodeRect, true), nearestP, minDist);
+            minDist = p.distanceSquaredTo(nearestP);
+            nearestP = nearest(node.right, p, splitRect(node, nodeRect, false), nearestP, minDist);
         } else {
-            nearestP = nearest(node.right, p, getRect(node, maxRect, false), nearestP, minDist);
-            minDist = p.distanceSquaredTo(nearestP)
-            nearestP = nearest(node.left, p, getRect(node, maxRect, true), nearestP, minDist);
+            nearestP = nearest(node.right, p, splitRect(node, nodeRect, false), nearestP, minDist);
+            minDist = p.distanceSquaredTo(nearestP);
+            nearestP = nearest(node.left, p, splitRect(node, nodeRect, true), nearestP, minDist);
         }
 
         return nearestP;
