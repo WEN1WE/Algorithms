@@ -22,3 +22,4 @@
 #### Tips
 - Use rect(the node in this rect) to diliver information to next recursion.
 - We also can add rect to Class Node as a Class variable.
+- The nearest function should check (if root == null) at first.
